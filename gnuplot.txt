@@ -1,0 +1,41 @@
+Prerequisites
+  /usr/bin/time
+  /usr/bin/gnuplot
+
+Test data
+  end=$((SECONDS+60)) 
+  while [ $SECONDS -lt $end ]
+  do 
+    /usr/bin/time -a -o /tmp/perf.log -f "%U %S %E %P %M" /your/prog/to/measure 
+  done
+  
+Pre-processing  
+  $ tail -1 /tmp/perf.log 
+  0.00 0.00 0:00.07 0% 3404
+  
+  # 3rd column's 0:00.07 format needs to be converted to 0.07; otherwise, gnuplot skips this data
+  $ sed -i 's/0:00\./0\./g' /tmp/perf.log
+  
+Gnuplot plot file
+  $ cat /tmp/perf.plt
+set term png small size 800,600
+set output "perf.png"
+
+set xlabel "Runs"
+set ylabel "Seconds"
+set y2label "Kbytes"
+
+set ytics nomirror
+set y2tics nomirror in
+
+set yrange [0:0.1]
+set y2range [0:*]
+
+plot "/tmp/perf.log" using 1 with lines axes x1y1 title "User CPU time", \
+     "/tmp/perf.log" using 2 with lines axes x1y1 title "Kernel CPU time", \
+     "/tmp/perf.log" using 3 with lines axes x1y1 title "Elapsed time", \
+     "/tmp/perf.log" using 5 with lines axes x1y2 title "Maximum resident set size"
+
+Generate output PNG
+   $ gnuplot /tmp/perf.plt
+  
